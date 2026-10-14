@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#7dd3fc"/>
+  <!-- trunk -->
+  <path d="M27 38 L25.5 55 L38.5 55 L37 38 Z" fill="#a16207" stroke="#5b3a17" stroke-width="2" stroke-linejoin="round"/>
+  <!-- crown: dark outline circles, then green fill on top to hide the overlaps -->
+  <g fill="#22c55e" stroke="#15803d" stroke-width="3">
+    <circle cx="32" cy="20" r="12"/><circle cx="21" cy="30" r="11"/><circle cx="43" cy="30" r="11"/><circle cx="32" cy="33" r="12"/>
+  </g>
+  <g fill="#22c55e">
+    <circle cx="32" cy="20" r="10.5"/><circle cx="21" cy="30" r="9.5"/><circle cx="43" cy="30" r="9.5"/><circle cx="32" cy="33" r="10.5"/>
+  </g>
+  <!-- fruits -->
+  <g stroke="#1e2a4a" stroke-width="1.5">
+    <circle cx="25" cy="25" r="4.2" fill="#ef4444"/>
+    <circle cx="38" cy="22" r="4.2" fill="#facc15"/>
+    <circle cx="33" cy="34" r="4.2" fill="#ea580c"/>
+    <circle cx="44" cy="33" r="3.6" fill="#a78bfa"/>
+    <circle cx="21" cy="35" r="3.6" fill="#ec4899"/>
+  </g>
+</svg>

@@ -1,0 +1,625 @@
+/* ==========================================================================
+   Gramma-Tree: The Sentence Builder — custom component styles
+   (Tailwind handles layout/spacing in index.html; this file holds the
+   game-specific look, fruit colours and all animations.)
+   ========================================================================== */
+
+/* ---------- Fredoka font, hosted in this folder (fonts/) ----------
+   One variable-font file per alphabet covers every weight from 400 to 700.
+   The browser downloads only the file(s) a page's letters actually need.
+   Fredoka is licensed under the SIL Open Font License; see fonts/OFL.txt. */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('fonts/fredoka-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('fonts/fredoka-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --ink: #1e2a4a;          /* dark navy text: high contrast on every bright colour */
+  --sky-top: #7dd3fc;
+  --sky-bottom: #e0f2fe;
+  --leaf: #16a34a;
+  --leaf-dark: #166534;
+  --nest-brown: #92400e;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+
+/* ---------- Structural basics ----------
+   The core layout is written out here as well as in Tailwind classes, so the
+   page holds together even if tailwind.css ever fails to load.
+   When both load, they agree. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; }
+h1, h2, p { margin: 0; }
+button { font: inherit; }
+[hidden] { display: none !important; }   /* so `hidden` always wins over display rules like flex/grid */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 28rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0.75rem 0.75rem 1.5rem;
+}
+#app > header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+#progress { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+#app h1 { text-align: center; font-size: 1.25rem; font-weight: 700; line-height: 1.25; color: #082f49; }
+
+/* The tree box anchors the branch zone; the SVG is just its backdrop */
+#tree { position: relative; width: 100%; }
+#tree > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.actions .btn-check { grid-column: 1 / -1; }
+
+body {
+  font-family: 'Fredoka', 'Baloo 2', 'Comic Sans MS', ui-rounded, system-ui, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 70%, #bbf7d0 100%);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- HUD ---------- */
+
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  white-space: nowrap;              /* never wrap "Level 1 · Seedling" onto two lines */
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 9999px;
+  box-shadow: 0 3px 0 rgba(30, 42, 74, 0.3);
+}
+
+/* Top toolbar: player chip on the left, sound button on the right */
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+
+/* Player chip: shows "👤 Name" and opens the player screen (>= 48px touch target) */
+.player-chip {
+  min-width: 0;                     /* lets a long name shrink instead of pushing the sound button off-screen */
+  max-width: 14rem;
+  min-height: 3rem;
+  font: inherit;
+  font-size: 1.1rem;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.player-chip #player-chip-name { overflow: hidden; text-overflow: ellipsis; }
+.player-chip:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(30, 42, 74, 0.3); }
+.player-chip:focus-visible { outline: 4px solid #2563eb; outline-offset: 3px; }
+
+/* Sound on/off: a round, tappable HUD pill (>= 48px touch target) */
+.sound-btn {
+  justify-content: center;
+  min-width: 3.25rem;
+  min-height: 3rem;
+  padding: 0.2rem 0.6rem;
+  font: inherit;
+  font-size: 1.3rem;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sound-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(30, 42, 74, 0.3); }
+.sound-btn:focus-visible { outline: 4px solid #2563eb; outline-offset: 3px; }
+.sound-btn[aria-pressed="false"] { background: #e2e8f0; }
+
+/* Little pop when stars are earned */
+.bump { animation: bump 0.6s ease-out; }
+@keyframes bump {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35) rotate(-4deg); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Progress dots */
+.dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid var(--ink);
+  transition: background-color 0.3s, transform 0.3s;
+}
+.dot.is-done    { background: #facc15; }
+.dot.is-current { transform: scale(1.3); border-color: var(--leaf-dark); }
+
+/* ---------- Branch area (sits on top of the SVG crown) ---------- */
+
+.branch-zone {
+  position: absolute;
+  /* percentages are relative to the 360x330 tree box */
+  left: 9%;
+  right: 9%;
+  top: 12%;
+  height: 56%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 0.9rem 0.6rem;               /* extra row gap leaves room for each fruit's stem and leaf */
+}
+
+/* ---------- Nest (drop zone) ---------- */
+
+.nest {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 0.9rem 0.6rem;
+  min-height: 7rem;
+  padding: 1.5rem 1rem 1rem;
+  border: 5px dashed var(--nest-brown);
+  border-radius: 2.25rem 2.25rem 3.5rem 3.5rem;
+  /* woven-straw look */
+  background:
+    repeating-linear-gradient(135deg, rgba(146, 64, 14, 0.12) 0 6px, transparent 6px 14px),
+    #fde68a;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+/* Placeholder text shown only while the nest is empty (no whitespace inside!) */
+.nest:empty::before {
+  content: attr(data-placeholder);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #78350f;
+  text-align: center;
+}
+
+.nest.nest-wrong {
+  border-style: solid;
+  animation: flash-red 0.7s ease-out;
+}
+.nest.nest-correct {
+  border-style: solid;
+  border-color: var(--success);
+  box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.35);
+}
+.nest.nest-nudge { animation: nudge 0.45s ease-in-out; }
+
+@keyframes flash-red {
+  0%   { border-color: var(--danger); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.35); }
+  100% { border-color: var(--nest-brown); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  30%      { transform: translateX(-4px); }
+  60%      { transform: translateX(4px); }
+}
+
+/* ---------- Word bubbles: the "fruits" ----------
+   Every word is a glossy, sticker-style fruit with a stem and a leaf.
+   Colours come from four custom properties that each .fruit-N class sets:
+     --f1 highlight   --f2 body colour   --f3 dark edge/outline   --ft text colour */
+
+.bubble {
+  position: relative;               /* lets a flying bubble use z-index (see app.js) and hosts stem + leaf */
+  min-height: 3.4rem;               /* well above the 48px touch target */
+  padding: 0.45rem 1.35rem 0.6rem;  /* a little extra at the bottom: fruit are fuller below the middle */
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ft, #fff);
+  text-shadow: var(--ts, none);
+  border: 3px solid var(--f3, #14532d);
+  border-radius: 48% 48% 46% 46% / 58% 58% 42% 42%;   /* plump, slightly egg-shaped */
+  /* layer 1: shiny white highlight, layer 2: round 3D shading */
+  background:
+    radial-gradient(ellipse 26% 18% at 27% 24%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 100%),
+    radial-gradient(circle at 32% 28%, var(--f1) 0%, var(--f2) 55%, var(--f3) 135%);
+  box-shadow: inset -5px -7px 0 rgba(0, 0, 0, 0.14), 0 5px 0 rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: box-shadow 0.12s;
+}
+.bubble:active { transform: translateY(3px); box-shadow: inset -5px -7px 0 rgba(0, 0, 0, 0.14), 0 1px 0 rgba(0, 0, 0, 0.22); }
+.bubble:focus-visible { outline: 4px solid #2563eb; outline-offset: 5px; }
+.bubble:disabled { cursor: default; }
+
+@media (hover: hover) {
+  .bubble:not(:disabled):hover { filter: brightness(1.08) saturate(1.1); }
+}
+
+/* Stem + leaf on top of every fruit (branch and nest) */
+.bubble::before {                    /* stem */
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 5px;
+  height: 11px;
+  margin-left: -2.5px;
+  background: #78350f;
+  border-radius: 3px 3px 0 0;
+}
+.bubble::after {                     /* leaf */
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 18px;
+  height: 11px;
+  margin-left: 1px;
+  background: linear-gradient(135deg, #86efac, #16a34a);
+  border: 2px solid #166534;
+  border-radius: 0 100% 0 100%;
+  transform: rotate(-18deg);
+  transform-origin: 0 100%;
+}
+
+/* Long sentences (7+ words, Level 3): slightly smaller fruits so they fit the crown */
+.is-dense .bubble {
+  min-height: 3rem;
+  padding: 0.35rem 0.95rem 0.5rem;
+  font-size: 1.15rem;
+}
+.is-dense .branch-zone,
+.is-dense .nest { gap: 0.7rem 0.45rem; }
+
+/* Five fruits. White text gets a dark outline (--ts) so it reads like a sticker. */
+.fruit-0, .fruit-1, .fruit-3, .fruit-4 {
+  --ft: #fff;
+  --ts: -1.5px -1.5px 0 var(--f3), 1.5px -1.5px 0 var(--f3), -1.5px 1.5px 0 var(--f3),
+         1.5px 1.5px 0 var(--f3), 0 2px 0 var(--f3);
+}
+.fruit-0 { --f1: #fecaca; --f2: #ef4444; --f3: #991b1b; }   /* apple */
+.fruit-1 { --f1: #fed7aa; --f2: #ea580c; --f3: #7c2d12; }   /* orange */
+.fruit-2 { --f1: #fef9c3; --f2: #facc15; --f3: #a16207;     /* lemon (dark text on bright yellow) */
+           --ft: #422006; --ts: 0 1px 0 rgba(255, 255, 255, 0.6); }
+.fruit-3 { --f1: #ddd6fe; --f2: #8b5cf6; --f3: #4c1d95; }   /* plum */
+.fruit-4 { --f1: #fbcfe8; --f2: #ec4899; --f3: #831843; }   /* strawberry */
+
+/* ---------- Hanging-fruit bob (branch only) ----------
+   Uses the standalone `translate` and `rotate` properties instead of `transform`,
+   so it layers cleanly with the FLIP move, shake and hop animations (which all
+   use `transform`) without fighting them. Each fruit gets its own random
+   --bob-dur / --bob-delay from app.js so the whole branch never sways in unison. */
+.branch-zone .bubble {
+  transform-origin: 50% -8px;       /* pivot above the fruit, like a stem: it swings, not just floats */
+  animation: bob var(--bob-dur, 3.2s) ease-in-out var(--bob-delay, 0s) infinite;
+}
+@keyframes bob {
+  0%, 100% { translate: 0 -3px; rotate: -1.6deg; }
+  50%      { translate: 0 4px;  rotate: 1.6deg; }
+}
+
+/* Wrong answer: bubbles in the nest wobble, staggered via --i */
+.bubble.shake { animation: shake 0.6s ease-in-out; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes shake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  15%      { transform: translateX(-7px) rotate(-3deg); }
+  35%      { transform: translateX(7px) rotate(3deg); }
+  55%      { transform: translateX(-5px) rotate(-2deg); }
+  75%      { transform: translateX(4px) rotate(1deg); }
+}
+
+/* Right answer: bubbles hop in a happy wave */
+.bubble.hop { animation: hop 0.6s ease-out; animation-delay: calc(var(--i, 0) * 70ms); }
+@keyframes hop {
+  0%, 100% { transform: translateY(0); }
+  40%      { transform: translateY(-14px) scale(1.08); }
+}
+
+/* ---------- Feedback line ---------- */
+
+.message {
+  min-height: 2rem;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.message.is-good  { color: var(--leaf-dark); }
+.message.is-oops  { color: #b91c1c; }
+
+/* ---------- Big kid-friendly buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.75rem;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  border: 4px solid var(--ink);
+  border-radius: 1.5rem;
+  box-shadow: 0 6px 0 var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition: transform 0.08s, box-shadow 0.08s, opacity 0.2s;
+}
+.btn:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+.btn:focus-visible { outline: 4px solid #2563eb; outline-offset: 3px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: 0 3px 0 var(--ink); }
+
+/* White text only on the darker button colours so contrast stays >= 4.5:1 */
+.btn-check { background: #15803d; }
+.btn-reset { background: #c2410c; }
+.btn-next  { background: #1d4ed8; }
+.btn-next:not(:disabled) { animation: pulse-next 1.2s ease-in-out infinite; }
+@keyframes pulse-next {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+/* ---------- Celebration: confetti + bouncing check ---------- */
+
+#celebration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 70;                      /* above the score screen (60) so confetti falls over it too */
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  width: 12px;
+  height: 18px;
+  border-radius: 3px;
+  animation: confetti-fall var(--dur, 2.2s) cubic-bezier(0.25, 0.6, 0.5, 1) var(--delay, 0s) forwards;
+}
+@keyframes confetti-fall {
+  0%   { transform: translate3d(0, 0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate3d(var(--drift, 0px), 105vh, 0) rotate(var(--spin, 720deg)); opacity: 0.9; }
+}
+
+.check-pop {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 8rem;
+  height: 8rem;
+  margin-left: -4rem;
+  font-size: 5rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--success);
+  border: 6px solid #fff;
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: check-bounce 1.5s ease-out forwards;
+}
+@keyframes check-bounce {
+  0%   { transform: scale(0) translateY(0); opacity: 0; }
+  25%  { transform: scale(1.2) translateY(0); opacity: 1; }
+  40%  { transform: scale(1) translateY(-30px); }
+  55%  { transform: scale(1) translateY(0); }
+  68%  { transform: scale(1) translateY(-14px); }
+  80%  { transform: scale(1) translateY(0); }
+  100% { transform: scale(1) translateY(0); opacity: 0; }
+}
+
+/* ---------- End-of-game score screen ---------- */
+
+.score-screen,
+.player-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;                    /* card uses margin:auto so it centres, and scrolls on short phones */
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(8, 47, 73, 0.75);
+}
+.player-screen { z-index: 65; }     /* above the score screen, below the confetti */
+
+.score-card,
+.player-card {
+  width: 100%;
+  max-width: 26rem;
+  margin: auto;
+  padding: 1.25rem 1.25rem 1.5rem;
+  text-align: center;
+  background: #fffbeb;
+  border: 5px solid var(--ink);
+  border-radius: 2rem;
+  box-shadow: 0 8px 0 var(--ink);
+  animation: score-pop 0.6s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+}
+@keyframes score-pop {
+  0%   { transform: scale(0.6) translateY(40px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.score-trophy { font-size: 3.5rem; line-height: 1; animation: trophy-wiggle 1.6s ease-in-out 0.6s infinite; }
+@keyframes trophy-wiggle {
+  0%, 100% { transform: rotate(0); }
+  25%      { transform: rotate(-8deg) scale(1.08); }
+  75%      { transform: rotate(8deg) scale(1.08); }
+}
+
+.score-title { margin: 0.25rem 0 0; font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.score-subtitle { margin: 0.35rem 0 0; font-size: 1.2rem; font-weight: 500; color: #475569; }
+
+/* Three big stars: unlit ones are grey; lit ones pop in one after another */
+.score-stars { display: flex; justify-content: center; gap: 0.25rem; margin: 0.75rem 0 0.25rem; }
+.score-star { font-size: 3.5rem; line-height: 1; filter: grayscale(1) opacity(0.3); }
+.score-star.is-lit { filter: none; animation: star-pop 0.7s cubic-bezier(0.2, 1.4, 0.3, 1) both; animation-delay: calc(0.5s + var(--i) * 0.4s); }
+@keyframes star-pop {
+  0%   { transform: scale(0) rotate(-120deg); opacity: 0; }
+  70%  { transform: scale(1.35) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.score-total { margin: 0; font-size: 2.75rem; font-weight: 700; line-height: 1.1; color: #b45309; }
+.score-of { font-size: 1.25rem; font-weight: 600; color: #475569; }
+
+/* Per-level breakdown */
+.score-levels { margin: 1rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
+.level-row { display: grid; grid-template-columns: 7.5rem 1fr 3.5rem; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 600; }
+.level-name { text-align: left; white-space: nowrap; }
+.level-score { text-align: right; }
+.level-bar { height: 1rem; overflow: hidden; background: #e2e8f0; border: 3px solid var(--ink); border-radius: 9999px; }
+.level-fill { display: block; height: 100%; width: 0; background: linear-gradient(#4ade80, #16a34a); border-radius: 9999px; transition: width 1s ease-out 0.8s; }
+
+.score-firsttry { margin: 1rem 0 0; font-size: 1.1rem; font-weight: 500; color: #475569; }
+.score-again { width: 100%; margin-top: 1.25rem; }
+
+/* Saved-score lines on the score screen */
+.score-player { margin: 0.1rem 0 0; font-size: 1.15rem; font-weight: 600; color: #475569; overflow-wrap: anywhere; }
+.score-newbest {
+  display: inline-block;
+  margin: 0.9rem 0 0;
+  padding: 0.3rem 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #7c2d12;
+  background: #fde047;
+  border: 3px solid var(--ink);
+  border-radius: 9999px;
+  animation: bump 0.8s ease-out 1.2s both;
+}
+.score-history { margin: 0.75rem 0 0; font-size: 1.1rem; font-weight: 600; line-height: 1.5; color: #334155; }
+
+/* Small underlined text button (Back / Switch player / Change player) */
+.btn-link {
+  display: block;
+  width: 100%;
+  min-height: 3rem;                 /* still a comfortable touch target */
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn-link:focus-visible { outline: 4px solid #2563eb; outline-offset: 2px; border-radius: 0.75rem; }
+
+.btn-link-danger { color: #b91c1c; }
+
+/* ---------- Player screen ---------- */
+
+.player-emoji { font-size: 3rem; line-height: 1; }
+.player-title { margin: 0.25rem 0 0.9rem; font-size: 1.9rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.player-action {
+  width: 100%;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  white-space: normal;              /* these labels are longer than the game buttons, so they may wrap */
+  line-height: 1.15;
+}
+/* "▶ Continue" with a smaller line underneath saying where it resumes */
+#btn-continue { flex-direction: column; gap: 0.1rem; }
+.btn-sub { font-size: 1rem; font-weight: 600; opacity: 0.95; }
+.nowrap { white-space: nowrap; }
+
+.player-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.7rem; }
+.player-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
+  background: #fff;
+  border: 4px solid var(--ink);
+  border-radius: 1.25rem;
+  box-shadow: 0 5px 0 var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.player-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.player-btn:focus-visible { outline: 4px solid #2563eb; outline-offset: 3px; }
+.player-btn .player-btn-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-btn .player-btn-meta { flex: none; font-size: 1rem; font-weight: 600; color: #475569; }
+
+.player-notice {
+  margin: -0.4rem 0 0.9rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #14532d;
+  background: #dcfce7;
+  border: 3px solid #16a34a;
+  border-radius: 1rem;
+}
+
+.player-label { display: block; margin-bottom: 0.5rem; font-size: 1.2rem; font-weight: 600; }
+.player-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink);
+  background: #fff;
+  border: 4px solid var(--ink);
+  border-radius: 1.25rem;
+}
+.player-input:focus-visible { outline: 4px solid #2563eb; outline-offset: 3px; }
+.player-error { min-height: 1.5rem; margin-top: 0.5rem; font-size: 1.05rem; font-weight: 600; color: #b91c1c; }
+
+.score-history span { display: block; }
+.welcome-stats { white-space: pre-line; margin: 0 0 0.5rem; font-size: 1.2rem; font-weight: 600; line-height: 1.6; color: #334155; }
+.fresh-confirm { margin-top: 0.5rem; }
+.fresh-confirm-text { font-size: 1.2rem; font-weight: 600; line-height: 1.4; }
+
+.player-warning {
+  margin-top: 1rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #7c2d12;
+  background: #ffedd5;
+  border: 3px solid #c2410c;
+  border-radius: 1rem;
+}
+
+/* ---------- Respect "reduce motion" ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .branch-zone .bubble, .bubble.shake, .bubble.hop, .bump, .nest.nest-nudge, .btn-next:not(:disabled) { animation: none; }
+  .confetti-piece { display: none; }
+  .score-card, .score-trophy, .score-star.is-lit, .score-newbest { animation: none; }
+  .level-fill { transition: none; }
+  .check-pop { animation-duration: 1.5s; animation-name: check-fade; }
+  @keyframes check-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+}

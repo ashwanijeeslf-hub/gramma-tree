@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7dd3fc" />
+  <title>Gramma-Tree: The Sentence Builder</title>
+
+  <!-- Search / link-preview text -->
+  <meta name="description" content="Gramma-Tree is a free English sentence-building game for children aged 6 to 10. Tap the fruits to put the words in the right order and earn stars!" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Gramma-Tree: The Sentence Builder" />
+  <meta property="og:description" content="A free English sentence-building game for children aged 6 to 10. Tap the fruits, build the sentence, earn stars!" />
+
+  <!-- Icons: browser tab, iPhone/iPad home screen, and "Add to Home screen" on Android -->
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Everything below is bundled in this folder: the game needs nothing from the internet.
+       tailwind.css = the Tailwind utilities used here (rebuild steps: README.md).
+       styles.css   = the game's own styles, plus the self-hosted Fredoka font (see fonts/). -->
+  <link rel="stylesheet" href="tailwind.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="min-h-screen antialiased">
+  <noscript>
+    <p style="padding: 1rem; font: 600 1.25rem system-ui, sans-serif; text-align: center;">
+      Gramma-Tree needs JavaScript to run. Please turn it on in your browser settings and reload the page.
+    </p>
+  </noscript>
+  <main id="app" class="mx-auto flex min-h-screen w-full max-w-md flex-col gap-3 px-3 pb-6 pt-3">
+
+    <!-- ===== TOOLBAR: who is playing, sound, star counter ===== -->
+    <div class="toolbar">
+      <!-- Opens the player screen (name, scores, continue / new game / switch player) -->
+      <button id="btn-player" type="button" class="hud-pill player-chip" aria-label="Player menu">
+        <span aria-hidden="true">👤</span>
+        <span id="player-chip-name">Player</span>
+      </button>
+      <!-- Sound on/off (label + icon are kept in sync by app.js) -->
+      <button id="btn-sound" type="button" class="hud-pill sound-btn" aria-pressed="true" aria-label="Sound is on. Tap to turn off">
+        <span id="sound-icon" aria-hidden="true">🔊</span>
+      </button>
+      <div class="hud-pill" id="star-pill" aria-label="Total stars">
+        <span aria-hidden="true">⭐</span>
+        <span id="star-count">0</span>
+      </div>
+    </div>
+
+
+    <!-- Heading = the current level (the nest itself says "Tap a fruit to put it in the nest") -->
+    <h1 class="text-center text-xl font-bold leading-tight text-sky-950">
+      <span id="level-icon" aria-hidden="true">🌱</span>
+      <span id="level-label">Level 1</span>
+    </h1>
+
+    <!-- Progress dots: one per sentence in the current level -->
+    <div id="progress" class="flex items-center justify-center gap-2" role="img" aria-label="Level progress"></div>
+
+    <!-- ===== TREE + BRANCH AREA ===== -->
+    <!-- The SVG is pure decoration. #branch sits on top of the crown and holds the jumbled word "fruits". -->
+    <section id="tree" class="relative w-full" aria-label="Tree branch with jumbled words" style="aspect-ratio: 360 / 330;">
+      <svg viewBox="0 0 360 330" class="absolute inset-0 h-full w-full" aria-hidden="true" focusable="false">
+        <!-- ground -->
+        <ellipse cx="180" cy="313" rx="170" ry="14" fill="#4ade80" stroke="#15803d" stroke-width="4" />
+        <!-- trunk -->
+        <path d="M158 235 C160 280 150 305 126 322 L234 322 C210 305 200 280 202 235 Z"
+              fill="#a16207" stroke="#5b3a17" stroke-width="5" stroke-linejoin="round" />
+        <path d="M172 250 C174 280 170 300 160 316" fill="none" stroke="#7c4a0e" stroke-width="4" stroke-linecap="round" />
+        <!-- crown outline (stroked circles) ... -->
+        <g fill="#22c55e" stroke="#15803d" stroke-width="5">
+          <circle cx="180" cy="92" r="78" />
+          <circle cx="98" cy="150" r="70" />
+          <circle cx="262" cy="150" r="70" />
+          <circle cx="180" cy="168" r="82" />
+        </g>
+        <!-- ... then fill-only circles on top to hide the inner overlap lines -->
+        <g fill="#22c55e">
+          <circle cx="180" cy="92" r="75" />
+          <circle cx="98" cy="150" r="67" />
+          <circle cx="262" cy="150" r="67" />
+          <circle cx="180" cy="168" r="79" />
+        </g>
+        <!-- soft highlights -->
+        <g fill="#4ade80" opacity="0.7">
+          <circle cx="150" cy="70" r="30" />
+          <circle cx="82" cy="130" r="22" />
+          <circle cx="230" cy="110" r="20" />
+        </g>
+      </svg>
+
+      <!-- Jumbled words appear here. Positioned over the crown. -->
+      <div id="branch" class="branch-zone" role="group" aria-label="Words on the branch"></div>
+    </section>
+
+    <!-- ===== NEST (drop zone) ===== -->
+    <section aria-label="Nest where your sentence is built">
+      <div id="nest" class="nest" role="group" aria-label="Your sentence"
+           data-placeholder="Tap a fruit to put it in the nest 🪺"></div>
+    </section>
+
+    <!-- Friendly feedback line (read aloud by screen readers) -->
+    <p id="message" class="message" role="status" aria-live="polite">&nbsp;</p>
+
+    <!-- ===== ACTION BUTTONS ===== -->
+    <div class="actions grid grid-cols-2 gap-3">
+      <button id="btn-check" type="button" class="btn btn-check col-span-2">
+        <span aria-hidden="true">✅</span> Check Answer
+      </button>
+      <button id="btn-reset" type="button" class="btn btn-reset">
+        <span aria-hidden="true">🔄</span> Reset
+      </button>
+      <button id="btn-next" type="button" class="btn btn-next" disabled>
+        <span aria-hidden="true" id="next-icon">🔒</span> <span id="next-label">Next Level</span>
+      </button>
+    </div>
+
+    <!-- Confetti + big checkmark are injected here -->
+    <div id="celebration" aria-hidden="true"></div>
+  </main>
+
+  <!-- ===== END-OF-GAME SCORE SCREEN =====
+       Hidden until the last sentence is solved. Lives outside #app so the game
+       behind it can be made inert (unclickable) while this is open. -->
+  <div id="score-screen" class="score-screen" role="dialog" aria-modal="true" aria-labelledby="score-title" hidden>
+    <div class="score-card">
+      <div class="score-trophy" aria-hidden="true">🏆</div>
+      <p id="score-player" class="score-player"></p>
+      <h2 id="score-title" class="score-title">Great job!</h2>
+      <p id="score-subtitle" class="score-subtitle"></p>
+
+      <!-- Three big stars: lit according to how well the child did -->
+      <div id="score-stars" class="score-stars" role="img" aria-label="">
+        <span class="score-star" style="--i:0">⭐</span>
+        <span class="score-star" style="--i:1">⭐</span>
+        <span class="score-star" style="--i:2">⭐</span>
+      </div>
+
+      <p class="score-total">
+        <span id="score-total">0</span><span class="score-of"> / <span id="score-max">0</span> stars</span>
+      </p>
+
+      <!-- One row per level: name, progress bar, stars earned -->
+      <ul id="score-levels" class="score-levels"></ul>
+
+      <p id="score-firsttry" class="score-firsttry"></p>
+
+      <!-- Saved scores: last time + best, and a badge when the best was beaten -->
+      <p id="score-newbest" class="score-newbest" hidden>🎉 New best score!</p>
+      <p id="score-history" class="score-history"></p>
+
+      <button id="btn-play-again" type="button" class="btn btn-check score-again">
+        <span aria-hidden="true">🌳</span> Play Again
+      </button>
+      <button id="btn-score-switch" type="button" class="btn-link">👤 Change player</button>
+    </div>
+  </div>
+
+  <!-- ===== PLAYER SCREEN =====
+       Shown at launch and from the 👤 button. Three views (only one visible at a time):
+         pick    – saved players + "New player"
+         name    – type a name
+         welcome – this player's last/best score, Continue / Start New Game / Switch player -->
+  <div id="player-screen" class="player-screen" role="dialog" aria-modal="true" aria-labelledby="player-title" hidden>
+    <div class="player-card">
+      <div class="player-emoji" aria-hidden="true">🌳</div>
+      <h2 id="player-title" class="player-title">Who's playing?</h2>
+      <!-- Short status message, e.g. "Aarav was removed." -->
+      <p id="player-notice" class="player-notice" role="status" hidden></p>
+
+      <!-- View 1: choose a saved player -->
+      <div id="view-pick">
+        <ul id="player-list" class="player-list"></ul>
+        <button id="btn-new-player" type="button" class="btn btn-reset player-action">
+          <span aria-hidden="true">➕</span> New player
+        </button>
+      </div>
+
+      <!-- View 2: type a name -->
+      <form id="view-name" novalidate hidden>
+        <label for="player-name" class="player-label">Type your name</label>
+        <input id="player-name" class="player-input" type="text" maxlength="12"
+               autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" />
+        <p id="name-error" class="player-error" role="alert"></p>
+        <button type="submit" class="btn btn-check player-action">
+          <span aria-hidden="true">🌱</span> Let's go!
+        </button>
+        <button type="button" id="btn-name-back" class="btn-link">← Back</button>
+      </form>
+
+      <!-- View 3: welcome (scores + resume / fresh start) -->
+      <div id="view-welcome" hidden>
+        <p id="welcome-stats" class="welcome-stats"></p>
+
+        <button id="btn-continue" type="button" class="btn btn-check player-action"></button>
+        <button id="btn-fresh" type="button" class="btn btn-reset player-action"></button>
+
+        <!-- Shown instead of the buttons above when "Start New Game" would wipe saved progress -->
+        <div id="fresh-confirm" class="fresh-confirm" hidden>
+          <p id="fresh-confirm-text" class="fresh-confirm-text"></p>
+          <button id="btn-fresh-yes" type="button" class="btn btn-reset player-action">Yes, start over</button>
+          <button id="btn-fresh-no" type="button" class="btn btn-check player-action">No, keep my place</button>
+        </div>
+
+        <button id="btn-switch" type="button" class="btn-link">👤 Not you? Switch player</button>
+        <button id="btn-remove" type="button" class="btn-link btn-link-danger">🗑️ Remove this player</button>
+        <button id="btn-close-profile" type="button" class="btn-link" hidden>← Back to game</button>
+      </div>
+
+      <!-- View 4: "are you sure?" before a player is deleted for good -->
+      <div id="view-remove" hidden>
+        <p id="remove-text" class="fresh-confirm-text"></p>
+        <button id="btn-remove-yes" type="button" class="btn btn-reset player-action">Yes, remove</button>
+        <button id="btn-remove-no" type="button" class="btn btn-check player-action"></button>
+      </div>
+
+      <p id="save-warning" class="player-warning" hidden>
+        ⚠️ This browser can't save progress, so scores will be forgotten when the page closes.
+      </p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
